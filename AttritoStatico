@@ -1,0 +1,398 @@
+<phyphox version="1.7" locale="en">
+  <title>Motion Stopwatch + Inclination</title>
+  <category>Timers</category>
+
+  <description>
+    </description>
+    
+  <data-containers>
+    <container>threshold</container>
+    <container>mindelay</container>
+    <container size="50">acc</container>
+    <container size="50">accT</container>
+    <container size="50">accCopy</container>
+    <container size="50">accTCopy</container>
+    <container>t</container>
+    <container>limit</container>
+    <container>max</container>
+    <container>last</container>
+    <container size="0">tlist</container>
+    <container size="0">dtlist</container>
+    <container size="0">tindex</container>
+    <container size="1">tcount</container>
+    <container size="1">tcount-1</container>
+    <container>avgInterval</container>
+    <container>avgRate</container>
+    <container>avgBPM</container>
+    <container>t0</container>
+    <container>t1</container>
+    <container>t2</container>
+    <container>t3</container>
+    <container>t4</container>
+    <container>t5</container>
+    <container>t0effective</container>
+    <container>t1effective</container>
+    <container>t2effective</container>
+    <container>t3effective</container>
+    <container>t4effective</container>
+    <container>t5effective</container>
+    <container init="0">tmax</container>
+    <container>dt01</container>
+    <container>dt02</container>
+    <container>dt03</container>
+    <container>dt04</container>
+    <container>dt05</container>
+    <container>dt12</container>
+    <container>dt23</container>
+    <container>dt34</container>
+    <container>dt45</container>
+    <container>count</container>
+    <!-- inclination + friction -->
+    <container size="1">accX</container>
+    <container size="1">accY</container>
+    <container size="1">accZ</container>
+    <container size="0">angle</container>
+    <container size="0">angleStart</container>
+    <container size="1">angleFriction</container>
+    <container size="1">Mu</container>
+    <!-- -->
+  </data-containers>
+  
+
+  <input>
+    <sensor type="linear_acceleration">
+      <output component="abs">acc</output>
+      <output component="t">accT</output>
+    </sensor>
+    <sensor type="accelerometer" rate="2" average="true">
+      <output component="x">accX</output>
+      <output component="y">accY</output>
+      <output component="z">accZ</output>
+    </sensor>
+  </input>
+  <views>
+    <view label="Simple">
+      <edit label="Threshold" unit="m/s²" default="1" signed="false" min="0">
+        <output>threshold</output>
+      </edit>
+      <edit label="Minimum Delay" unit="s" default="0.2" signed="false" min="0">
+        <output>mindelay</output>
+      </edit>
+      <separator height="1"/>
+      <value label="angleFriction" size="3" precision="2" unit="°">
+        <input>angleFriction</input>
+      </value>
+      <value label="mu" size="3" precision="2" unit="a.u.">
+        <input>Mu</input>
+      </value>
+      <button label="Reset">
+        <input type="empty"/>
+        <output>tlist</output>
+      </button>
+      <separator height="1"/>
+      <info label="Change the threshold to be above the sensor noise level, but below the trigger acceleration (you can try the accelerometer experiment without g to check these). Also set the minimum delay to avoid triggers shorter than that time."/>
+      <separator height="1"/>
+      <info label="The precision of this experiment depends on the accelerometer in your phone. Fast accelerometers can be better than a hundredth of a second, while slow ones may only achieve a resolution of one second."/>
+    </view>
+    
+  </views>
+  <analysis>
+    <!-- We create a local copy of the new acc data and fill it with a zero if there is none as an empty buffer messes up our calculations -->
+    <append>
+      <input clear="true">acc</input>
+      <output clear="true">accCopy</output>
+    </append>
+    <append>
+      <input clear="true">accT</input>
+      <output clear="true">accTCopy</output>
+    </append>
+    <count>
+      <input clear="false">accCopy</input>
+      <output>count</output>
+    </count>
+    <if equal="true">
+      <input clear="false">count</input>
+      <input type="value">0</input>
+      <input type="value">0</input>
+      <input clear="false">accCopy</input>
+      <output clear="true">accCopy</output>
+    </if>
+    <if equal="true">
+      <input clear="false">count</input>
+      <input type="value">0</input>
+      <input type="value">0</input>
+      <input clear="false">accTCopy</input>
+      <output clear="true">accTCopy</output>
+    </if>
+    <if equal="true">
+      <input>count</input>
+      <input type="value">0</input>
+      <input clear="false">tmax</input>
+      <input clear="false">accTCopy</input>
+      <output>tmax</output>
+    </if>
+    <!--  -->
+    <max>
+      <input as="x">accTCopy</input>
+      <input as="y">accCopy</input>
+      <output as="position">t</output>
+      <output as="max">max</output>
+    </max>
+    <if greater="true">
+      <input clear="false">max</input>
+      <input clear="false">threshold</input>
+      <input clear="false">t</input>
+      <input type="value">0</input>
+      <output>t</output>
+    </if>
+    
+    <!-- inclination + friction -->
+    <formula formula="atan2(sqrt([1_]*[1_]+[2_]*[2_]),[3_])*57.29577951">
+      <input clear="false">accX</input>
+      <input clear="false">accY</input>
+      <input clear="false">accZ</input>
+      <output clear="false">angle</output>
+    </formula>
+
+    <if greater="true">
+      <input clear="false">t</input>
+      <input type="value">0</input>
+      <input clear="false">angle</input>
+      <output clear="false">angleStart</output>
+    </if>
+    
+    <max>
+        <input as="y" clear="false">angleStart</input>
+        <output as="max">angleFriction</output>
+    </max>
+    
+    <tan deg="true">
+        <input clear="false">angleFriction</input>
+        <output clear="false">Mu</output>
+    </tan>
+    <!-- -->
+    
+    <const>
+      <output>last</output>
+    </const>
+    <append>
+      <input clear="false">tlist</input>
+      <output clear="false">last</output>
+    </append>
+    <add>
+      <input clear="false">last</input>
+      <input clear="false">mindelay</input>
+      <output>limit</output>
+    </add>
+    <if less="true" equal="true">
+      <input clear="false">limit</input>
+      <input clear="false">t</input>
+      <input clear="false">t</input>
+      <input type="value">0</input>
+      <output>t</output>
+    </if>
+    <if greater="true">
+      <input clear="false">t</input>
+      <input type="value">0</input>
+      <input clear="false">t</input>
+      <output clear="false">tlist</output>
+    </if>
+    <differentiate>
+      <input clear="false">tlist</input>
+      <output>dtlist</output>
+    </differentiate>
+    <average>
+      <input clear="false">dtlist</input>
+      <output>avgInterval</output>
+    </average>
+    <divide>
+      <input type="value">1</input>
+      <input clear="false">avgInterval</input>
+      <output>avgRate</output>
+    </divide>
+    <multiply>
+      <input clear="false">avgRate</input>
+      <input type="value">60</input>
+      <output>avgBPM</output>
+    </multiply>
+    <append>
+      <input type="value">0</input>
+      <output clear="false">dtlist</output>
+    </append>
+    <count>
+      <input clear="false">tlist</input>
+      <output>tcount</output>
+    </count>
+    <subtract>
+      <input clear="false">tcount</input>
+      <input type="value">1</input>
+      <output>tcount-1</output>
+    </subtract>
+    <ramp>
+      <input as="start" type="value">0</input>
+      <input as="stop">tcount-1</input>
+      <input as="length">tcount</input>
+      <output>tindex</output>
+    </ramp>
+    <const>
+      <output>t0</output>
+    </const>
+    <const>
+      <output>t1</output>
+    </const>
+    <const>
+      <output>t2</output>
+    </const>
+    <const>
+      <output>t3</output>
+    </const>
+    <const>
+      <output>t4</output>
+    </const>
+    <const>
+      <output>t5</output>
+    </const>
+    <subrange>
+      <input as="from" type="value">0</input>
+      <input as="length" type="value">1</input>
+      <input as="in" clear="false">tlist</input>
+      <output clear="false">t0</output>
+    </subrange>
+    <subrange>
+      <input as="from" type="value">1</input>
+      <input as="length" type="value">1</input>
+      <input as="in" clear="false">tlist</input>
+      <output clear="false">t1</output>
+    </subrange>
+    <subrange>
+      <input as="from" type="value">2</input>
+      <input as="length" type="value">1</input>
+      <input as="in" clear="false">tlist</input>
+      <output clear="false">t2</output>
+    </subrange>
+    <subrange>
+      <input as="from" type="value">3</input>
+      <input as="length" type="value">1</input>
+      <input as="in" clear="false">tlist</input>
+      <output clear="false">t3</output>
+    </subrange>
+    <subrange>
+      <input as="from" type="value">4</input>
+      <input as="length" type="value">1</input>
+      <input as="in" clear="false">tlist</input>
+      <output clear="false">t4</output>
+    </subrange>
+    <subrange>
+      <input as="from" type="value">5</input>
+      <input as="length" type="value">1</input>
+      <input as="in" clear="false">tlist</input>
+      <output clear="false">t5</output>
+    </subrange>
+    <if less="true" equal="true">
+      <input clear="false">t5</input>
+      <input type="value">0</input>
+      <input clear="false">tmax</input>
+      <input clear="false">t5</input>
+      <output>t5effective</output>
+    </if>
+    <if less="true" equal="true">
+      <input clear="false">t4</input>
+      <input type="value">0</input>
+      <input clear="false">tmax</input>
+      <input clear="false">t4</input>
+      <output>t4effective</output>
+    </if>
+    <if less="true" equal="true">
+      <input clear="false">t3</input>
+      <input type="value">0</input>
+      <input clear="false">tmax</input>
+      <input clear="false">t3</input>
+      <output>t3effective</output>
+    </if>
+    <if less="true" equal="true">
+      <input clear="false">t2</input>
+      <input type="value">0</input>
+      <input clear="false">tmax</input>
+      <input clear="false">t2</input>
+      <output>t2effective</output>
+    </if>
+    <if less="true" equal="true">
+      <input clear="false">t1</input>
+      <input type="value">0</input>
+      <input clear="false">tmax</input>
+      <input clear="false">t1</input>
+      <output>t1effective</output>
+    </if>
+    <if less="true" equal="true">
+      <input clear="false">t0</input>
+      <input type="value">0</input>
+      <input clear="false">tmax</input>
+      <input clear="false">t0</input>
+      <output>t0effective</output>
+    </if>
+    <subtract>
+      <input clear="false">t5effective</input>
+      <input clear="false">t4effective</input>
+      <output>dt45</output>
+    </subtract>
+    <subtract>
+      <input clear="false">t4effective</input>
+      <input clear="false">t3effective</input>
+      <output>dt34</output>
+    </subtract>
+    <subtract>
+      <input clear="false">t3effective</input>
+      <input clear="false">t2effective</input>
+      <output>dt23</output>
+    </subtract>
+    <subtract>
+      <input clear="false">t2effective</input>
+      <input clear="false">t1effective</input>
+      <output>dt12</output>
+    </subtract>
+    <subtract>
+      <input>t5effective</input>
+      <input clear="false">t0effective</input>
+      <output>dt05</output>
+    </subtract>
+    <subtract>
+      <input>t4effective</input>
+      <input clear="false">t0effective</input>
+      <output>dt04</output>
+    </subtract>
+    <subtract>
+      <input>t3effective</input>
+      <input clear="false">t0effective</input>
+      <output>dt03</output>
+    </subtract>
+    <subtract>
+      <input>t2effective</input>
+      <input clear="false">t0effective</input>
+      <output>dt02</output>
+    </subtract>
+    <subtract>
+      <input>t1effective</input>
+      <input>t0effective</input>
+      <output>dt01</output>
+    </subtract>
+  </analysis>
+  <export>
+    <set name="Simple">
+      <data name="Start (s)">t0</data>
+      <data name="Stop (s)">t1</data>
+      <data name="Difference (s)">dt01</data>
+    </set>
+    <set name="Multiple">
+      <data name="Start (s)">t0</data>
+      <data name="Stop 1 (s)">t1</data>
+      <data name="Stop 2 (s)">t2</data>
+      <data name="Stop 3 (s)">t3</data>
+      <data name="Stop 4 (s)">t4</data>
+      <data name="Stop 5 (s)">t5</data>
+    </set>
+    <set name="All">
+      <data name="Event time (s)">tlist</data>
+      <data name="Interval (s)">dtlist</data>
+    </set>
+  </export>
+</phyphox>
