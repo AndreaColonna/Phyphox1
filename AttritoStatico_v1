@@ -110,8 +110,8 @@
       <input clear="false">accCopy</input>
       <output>count</output>
     </count>
-    <if equal="true">
-      <input clear="false">count</input>
+    <if equal="true">                         <!-- se è vero che count == 0  -->
+      <input clear="false">count</input>       <!-- dopom una lettura  -->
       <input type="value">0</input>
       <input type="value">0</input>
       <input clear="false">accCopy</input>
