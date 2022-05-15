@@ -6,4 +6,11 @@
 **Grassetto e pure _corsivo_**.
 Infine ~sbarrato~
 [google](https://www.google.it/)
-> Come non detto
+> Separatore orizzontale 1
+---
+> Separatore orizzontale 2
+***
+> Separatore orizzontale 3
+___
+😄
+🐡
